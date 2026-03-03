@@ -1,0 +1,33 @@
+# Environment and secrets (do not commit API keys)
+.env
+**/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Testing and cache
+.pytest_cache/
+.coverage
+htmlcov/
+data/cache/
+
+# IDE and OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+*.swo
+
+# Logs
+*.log
