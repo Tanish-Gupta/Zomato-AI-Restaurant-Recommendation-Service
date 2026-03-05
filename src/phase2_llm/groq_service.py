@@ -108,6 +108,9 @@ class GroqLLMService:
                 if not content or not content.strip():
                     raise GroqServiceError("Empty response from Groq")
                 return content.strip()
+            except GroqServiceError:
+                # Empty or config errors: do not retry (retries won't help)
+                raise
             except Exception as e:
                 last_error = e
                 logger.warning(

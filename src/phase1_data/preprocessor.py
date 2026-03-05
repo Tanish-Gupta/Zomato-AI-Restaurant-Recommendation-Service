@@ -83,9 +83,22 @@ class DataPreprocessor:
 
         return df
 
+    # Rupee ranges for "cost for two" → low/medium/high/very_high (dataset uses INR)
+    COST_RUPEES_TO_CATEGORY = (
+        (0, 400, "low"),
+        (401, 700, "medium"),
+        (701, 1200, "high"),
+        (1201, 999999, "very_high"),
+    )
+
     def _normalize_price_range(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Normalize price range to categorical values."""
-        price_cols = [col for col in df.columns if "price" in col.lower()]
+        """Normalize price range to categorical values (low/medium/high/very_high)."""
+        price_cols = [
+            col for col in df.columns
+            if "price" in col.lower() or ("cost" in col.lower() and "two" in col.lower())
+        ]
+        if not price_cols:
+            price_cols = [col for col in df.columns if "cost" in col.lower()]
 
         for col in price_cols:
             if df[col].dtype in [np.int64, np.float64]:
@@ -94,7 +107,22 @@ class DataPreprocessor:
                     if pd.notna(x) and x > 0
                     else "medium"
                 )
-
+            elif df[col].dtype == object or str(df[col].dtype) == "string":
+                def _cost_to_category(val):
+                    if pd.isna(val) or val in ("Unknown", "", "nan"):
+                        return "medium"
+                    s = str(val).strip().replace(",", "")
+                    try:
+                        n = float(s)
+                        if n <= 0:
+                            return "medium"
+                        for low, high, cat in self.COST_RUPEES_TO_CATEGORY:
+                            if low <= n <= high:
+                                return cat
+                        return "very_high"
+                    except (ValueError, TypeError):
+                        return "medium"
+                df[f"{col}_category"] = df[col].apply(_cost_to_category)
         return df
 
     def _normalize_rating(self, df: pd.DataFrame) -> pd.DataFrame:

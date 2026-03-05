@@ -13,7 +13,7 @@ class RecommendationRequest(BaseModel):
     location: Optional[str] = Field(None, description="e.g. Connaught Place, Koramangala")
     price_range: Optional[str] = Field(None, description="low, medium, high, very_high")
     min_rating: Optional[float] = Field(None, ge=0, le=5, description="Minimum rating 0-5")
-    num_recommendations: int = Field(5, ge=1, le=20, description="Number of recommendations")
+    num_recommendations: int = Field(5, ge=1, le=50, description="Number of recommendations (max 50)")
     additional_preferences: str = Field("", description="Free text for extra context")
 
 

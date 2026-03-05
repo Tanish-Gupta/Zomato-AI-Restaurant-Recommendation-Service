@@ -1,49 +1,72 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import './App.css'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+const PRICE_ORDER = { low: 1, medium: 2, high: 3, very_high: 4 }
+const PAGE_SIZE_OPTIONS = [5, 10, 20, 50]
+
+const CARD_IMAGES = [
+  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=280&fit=crop',
+  'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=280&fit=crop',
+  'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=280&fit=crop',
+  'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=280&fit=crop',
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=280&fit=crop',
+  'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=400&h=280&fit=crop',
+  'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=400&h=280&fit=crop',
+  'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&h=280&fit=crop',
+]
+
 function App() {
-  const [cuisines, setCuisines] = useState([])
-  const [locations, setLocations] = useState([])
+  const [cuisines, setCuisines] = useState(['Any'])
+  const [locations, setLocations] = useState(['Any'])
   const [loadingMeta, setLoadingMeta] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [recommendations, setRecommendations] = useState([])
   const [summary, setSummary] = useState('')
+  const [sortBy, setSortBy] = useState('default')
+  const [pageSize, setPageSize] = useState(10)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const [form, setForm] = useState({
     cuisine: 'Any',
     location: 'Any',
     price_range: 'Any',
     min_rating: '',
-    num_recommendations: 5,
+    num_recommendations: 10,
     additional_preferences: '',
   })
 
+  // Load cuisines once on mount
   useEffect(() => {
     let cancelled = false
-    Promise.all([
-      fetch(`${API_BASE}/api/cuisines`).then(r => r.ok ? r.json() : []),
-      fetch(`${API_BASE}/api/locations`).then(r => r.ok ? r.json() : []),
-    ])
-      .then(([c, l]) => {
-        if (!cancelled) {
-          setCuisines(['Any', ...(c || [])])
-          setLocations(['Any', ...(l || [])])
-          setError(null)
-        }
+    fetch(`${API_BASE}/api/cuisines`)
+      .then(r => r.ok ? r.json() : [])
+      .then(c => {
+        if (!cancelled) setCuisines(['Any', ...(c || [])])
       })
-      .catch((err) => {
-        if (!cancelled) {
-          setCuisines(['Any'])
-          setLocations(['Any'])
-          setError('Cannot reach API. Start the backend first: run "python3 -m uvicorn src.main:app --reload --host 0.0.0.0 --port 8000" in the project root.')
-        }
-      })
+      .catch(() => { if (!cancelled) setCuisines(['Any']) })
       .finally(() => { if (!cancelled) setLoadingMeta(false) })
     return () => { cancelled = true }
   }, [])
+
+  // Load locations when cuisine changes: after selecting a cuisine, show only locations that have that cuisine
+  useEffect(() => {
+    let cancelled = false
+    const cuisineParam = form.cuisine && form.cuisine !== 'Any' ? `?cuisine=${encodeURIComponent(form.cuisine)}` : ''
+    fetch(`${API_BASE}/api/locations${cuisineParam}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(l => {
+        if (!cancelled) {
+          const list = ['Any', ...(l || [])]
+          setLocations(list)
+          setForm(f => (f.location && !list.includes(f.location) ? { ...f, location: 'Any' } : f))
+        }
+      })
+      .catch(() => { if (!cancelled) setLocations(['Any']) })
+    return () => { cancelled = true }
+  }, [form.cuisine])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -67,8 +90,9 @@ function App() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail || 'Request failed')
-      setRecommendations(data.recommendations || [])
-      setSummary(data.summary || '')
+      const recs = data.recommendations || []
+      setRecommendations(recs)
+      setSummary(data.summary || (recs.length === 0 ? 'No restaurants match your criteria. Try relaxing filters (e.g. cuisine or location).' : '') || '')
     } catch (err) {
       setError(err.message || 'Could not fetch recommendations.')
     } finally {
@@ -76,14 +100,40 @@ function App() {
     }
   }
 
+  const sortedRecommendations = useMemo(() => {
+    if (!recommendations.length) return []
+    const list = [...recommendations]
+    if (sortBy === 'default') return list
+    if (sortBy === 'rating_desc') return list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+    if (sortBy === 'rating_asc') return list.sort((a, b) => (a.rating ?? 0) - (b.rating ?? 0))
+    if (sortBy === 'price_asc') return list.sort((a, b) => (PRICE_ORDER[a.price_range?.toLowerCase()] ?? 2) - (PRICE_ORDER[b.price_range?.toLowerCase()] ?? 2))
+    if (sortBy === 'price_desc') return list.sort((a, b) => (PRICE_ORDER[b.price_range?.toLowerCase()] ?? 2) - (PRICE_ORDER[a.price_range?.toLowerCase()] ?? 2))
+    return list
+  }, [recommendations, sortBy])
+
+  const totalPages = Math.max(1, Math.ceil(sortedRecommendations.length / pageSize))
+  const start = (currentPage - 1) * pageSize
+  const paginatedRecs = useMemo(() => sortedRecommendations.slice(start, start + pageSize), [sortedRecommendations, start, pageSize])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [sortBy, recommendations.length])
+
+  const topCuisines = cuisines.filter((c) => c !== 'Any').slice(0, 14)
+
   return (
     <div className="app">
+      <nav className="nav">
+        <a href="#" className="nav-brand" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>zomato</a>
+        <div className="nav-links">
+          <a href="#" className="active" onClick={(e) => e.preventDefault()}>Recommendations</a>
+        </div>
+      </nav>
+
       <header className="hero">
-        <div className="hero-bg" />
         <div className="hero-content">
-          <div className="brand">zomato</div>
-          <h1>Restaurant Recommendations</h1>
-          <p>Set your preferences and get personalized picks powered by AI.</p>
+          <h1>Find your <span className="highlight">favourite</span> restaurants</h1>
+          <p className="hero-sub">Set preferences, get personalized picks powered by AI.</p>
         </div>
       </header>
 
@@ -93,6 +143,23 @@ function App() {
             <p>{error}</p>
           </div>
         )}
+
+        {!loadingMeta && topCuisines.length > 0 && (
+          <div className="cuisine-carousel">
+            <h3>Quick pick cuisine</h3>
+            <div className="cuisine-scroll">
+              <button type="button" className={`cuisine-chip ${form.cuisine === 'Any' ? 'active' : ''}`} onClick={() => setForm((f) => ({ ...f, cuisine: 'Any' }))}>
+                Any
+              </button>
+              {topCuisines.map((c) => (
+                <button type="button" key={c} className={`cuisine-chip ${form.cuisine === c ? 'active' : ''}`} onClick={() => setForm((f) => ({ ...f, cuisine: c }))}>
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <form className="card form-card" onSubmit={handleSubmit}>
           <h2>Your preferences</h2>
           {loadingMeta && <p className="meta-loading">Loading options…</p>}
@@ -147,13 +214,13 @@ function App() {
               />
             </label>
             <label>
-              <span>Number of results</span>
+              <span>Number of results (max 50)</span>
               <input
                 type="number"
                 min="1"
-                max="20"
+                max="50"
                 value={form.num_recommendations}
-                onChange={(e) => setForm((f) => ({ ...f, num_recommendations: parseInt(e.target.value, 10) || 5 }))}
+                onChange={(e) => setForm((f) => ({ ...f, num_recommendations: Math.min(50, Math.max(1, parseInt(e.target.value, 10) || 5)) }))}
               />
             </label>
           </div>
@@ -167,7 +234,14 @@ function App() {
             />
           </label>
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Finding restaurants…' : 'Get recommendations'}
+            {loading ? (
+              'Finding restaurants…'
+            ) : (
+              <>
+                <span aria-hidden>🔍</span>
+                Get recommendations
+              </>
+            )}
           </button>
         </form>
 
@@ -180,23 +254,66 @@ function App() {
 
         {recommendations.length > 0 && (
           <section className="results">
-            <h2>Recommendations</h2>
+            <div className="results-header">
+              <h2>Recommendations</h2>
+              <div className="results-controls">
+                <label className="sort-label">
+                  <span>Sort by</span>
+                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sort-select">
+                    <option value="default">Default order</option>
+                    <option value="rating_desc">Rating: high → low</option>
+                    <option value="rating_asc">Rating: low → high</option>
+                    <option value="price_asc">Price: low → high</option>
+                    <option value="price_desc">Price: high → low</option>
+                  </select>
+                </label>
+                <label className="page-size-label">
+                  <span>Show per page</span>
+                  <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }} className="page-size-select">
+                    {PAGE_SIZE_OPTIONS.map((n) => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
             <div className="results-grid">
-              {recommendations.map((rec, i) => (
-                <article key={i} className="card rec-card">
-                  <div className="rec-header">
-                    <span className="rec-number">{i + 1}</span>
+              {paginatedRecs.map((rec, i) => (
+                <article key={start + i} className="rec-card">
+                  <div className="rec-card-image">
+                    <img
+                      src={CARD_IMAGES[(start + i) % CARD_IMAGES.length]}
+                      alt=""
+                      onError={(e) => { e.target.style.display = 'none' }}
+                    />
+                    <span className="rec-number">{start + i + 1}</span>
+                  </div>
+                  <div className="rec-card-body">
                     <h3>{rec.name}</h3>
+                    <div className="rec-meta">
+                      <span className="chip">{rec.cuisine}</span>
+                      <span className="chip">{rec.location}</span>
+                      <span className="rating">★ {Number(rec.rating)?.toFixed(1) || rec.rating}</span>
+                      <span className="price-tag">{rec.price_range}</span>
+                    </div>
+                    {rec.reason && <p className="rec-reason">{rec.reason}</p>}
                   </div>
-                  <div className="rec-meta">
-                    <span className="chip">{rec.cuisine}</span>
-                    <span className="chip">{rec.location}</span>
-                    <span className="rating">★ {rec.rating}</span>
-                    <span className="price">{rec.price_range}</span>
-                  </div>
-                  {rec.reason && <p className="rec-reason">{rec.reason}</p>}
                 </article>
               ))}
+            </div>
+            <div className="pagination">
+              <span className="pagination-info">
+                Showing {sortedRecommendations.length ? start + 1 : 0}–{Math.min(start + pageSize, sortedRecommendations.length)} of {sortedRecommendations.length}
+              </span>
+              <div className="pagination-buttons">
+                <button type="button" className="pagination-btn" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage <= 1}>
+                  Previous
+                </button>
+                <span className="pagination-page">Page {currentPage} of {totalPages}</span>
+                <button type="button" className="pagination-btn" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages}>
+                  Next
+                </button>
+              </div>
             </div>
           </section>
         )}

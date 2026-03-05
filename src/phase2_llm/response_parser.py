@@ -80,8 +80,10 @@ def parse_recommendations_response(raw_response: str) -> Dict[str, Any]:
     try:
         json_str = extract_json_from_text(raw_response)
         data = json.loads(json_str)
-    except json.JSONDecodeError as e:
-        logger.warning("JSON decode error: %s. Input snippet: %s", e, raw_response[:500])
+    except (json.JSONDecodeError, ResponseParseError) as e:
+        logger.warning("Parse error: %s. Input snippet: %s", e, (raw_response or "")[:500])
+        if isinstance(e, ResponseParseError):
+            raise
         raise ResponseParseError(f"Invalid JSON in response: {e}") from e
 
     if not isinstance(data, dict):

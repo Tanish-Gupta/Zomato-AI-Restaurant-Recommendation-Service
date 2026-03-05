@@ -131,8 +131,8 @@ class RestaurantRepository:
         if min_rating is not None and self._column_mapping.get("rating"):
             col = self._column_mapping["rating"]
             rating_series = pd.to_numeric(df[col], errors="coerce")
-            # Include rows with missing/NaN rating so "min 0" doesn't drop unrated restaurants
-            df = df[(rating_series.isna()) | (rating_series >= min_rating)]
+            # Only show restaurants with rating >= min_rating; exclude missing/NaN (unrated) when user sets a minimum
+            df = df[(rating_series.notna()) & (rating_series >= min_rating)]
 
         if max_rating is not None and self._column_mapping.get("rating"):
             col = self._column_mapping["rating"]
@@ -168,14 +168,18 @@ class RestaurantRepository:
 
         return sorted(cuisines)
 
-    def get_unique_locations(self) -> List[str]:
-        """Get list of unique locations in the dataset."""
+    def get_unique_locations(self, cuisine: Optional[str] = None) -> List[str]:
+        """Get list of unique locations, optionally filtered by cuisine."""
         if not self._column_mapping.get("location"):
             return []
 
+        df = self.data
+        if cuisine and self._column_mapping.get("cuisine"):
+            c_col = self._column_mapping["cuisine"]
+            df = df[df[c_col].str.lower().str.contains(cuisine.lower(), na=False)]
         col = self._column_mapping["location"]
-        locations = self.data[col].dropna().unique()
-        return sorted([loc for loc in locations if loc and loc != "Unknown"])
+        locations = df[col].dropna().unique()
+        return sorted([loc for loc in locations if loc and str(loc).strip() != "Unknown"])
 
     def get_rating_range(self) -> tuple:
         """Get the min and max rating values."""

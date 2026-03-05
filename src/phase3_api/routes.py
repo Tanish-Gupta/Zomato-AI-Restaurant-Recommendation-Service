@@ -52,11 +52,11 @@ def list_cuisines():
 
 
 @router.get("/locations", response_model=List[str])
-def list_locations():
-    """Return list of unique locations in the dataset."""
+def list_locations(cuisine: Optional[str] = None):
+    """Return list of unique locations. If cuisine is set, only locations that have that cuisine."""
     try:
         svc = get_recommendation_service()
-        return svc._repo.get_unique_locations()
+        return svc._repo.get_unique_locations(cuisine=cuisine)
     except Exception as e:
         logger.exception("list_locations failed")
         raise HTTPException(status_code=500, detail=str(e)) from e
