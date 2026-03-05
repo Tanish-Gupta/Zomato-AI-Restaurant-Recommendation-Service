@@ -98,8 +98,11 @@ class DataPreprocessor:
         return df
 
     def _normalize_rating(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Normalize ratings to 0-5 scale."""
-        rating_cols = [col for col in df.columns if "rating" in col.lower()]
+        """Normalize ratings to 0-5 scale. Handles 'rate' / 'rating' columns including '4.1/5' strings."""
+        rating_cols = [
+            col for col in df.columns
+            if "rating" in col.lower() or col.lower() == "rate"
+        ]
 
         for col in rating_cols:
             if df[col].dtype in [np.int64, np.float64]:
@@ -107,6 +110,23 @@ class DataPreprocessor:
                 if max_rating > 5:
                     df[col] = (df[col] / max_rating) * 5
                 df[col] = df[col].clip(0, 5).round(2)
+            elif df[col].dtype == object or str(df[col].dtype) == "string":
+                # Parse "4.1/5" or "4.1" strings to numeric 0-5
+                def _parse_rating(val):
+                    if pd.isna(val):
+                        return np.nan
+                    s = str(val).strip()
+                    if not s or s.lower() in ("unknown", "nan", "n/a", ""):
+                        return np.nan
+                    if "/" in s:
+                        s = s.split("/")[0].strip()
+                    try:
+                        x = float(s)
+                        return round(min(5.0, max(0.0, x)), 2)
+                    except (ValueError, TypeError):
+                        return np.nan
+
+                df[col] = df[col].apply(_parse_rating)
 
         return df
 

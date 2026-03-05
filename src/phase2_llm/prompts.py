@@ -107,8 +107,14 @@ def format_restaurants_for_prompt(
         cuisine = str(row.get(cuisine_col, ""))[:40]
         loc = str(row.get(location_col, ""))[:40]
         rating = row.get(rating_col, "")
-        if pd.notna(rating):
-            rating = f"{float(rating):.1f}"
+        if pd.notna(rating) and str(rating).strip():
+            try:
+                s = str(rating).strip()
+                if "/" in s:
+                    s = s.split("/")[0].strip()
+                rating = f"{float(s):.1f}"
+            except (ValueError, TypeError):
+                rating = str(rating)[:10]
         else:
             rating = "N/A"
         price = str(row.get(price_col, ""))

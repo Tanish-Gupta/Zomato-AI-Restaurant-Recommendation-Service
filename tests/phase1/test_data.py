@@ -1,9 +1,17 @@
 """Tests for Phase 1: Data Foundation."""
 
+import os
+from pathlib import Path
+
+# Set HuggingFace cache to project dir *before* datasets is used (so sandbox can write)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+HF_CACHE_DIR = PROJECT_ROOT / "data" / "hf_cache"
+HF_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+os.environ["HF_DATASETS_CACHE"] = str(HF_CACHE_DIR)
+
 import pytest
 import pandas as pd
 import numpy as np
-from pathlib import Path
 import tempfile
 import shutil
 

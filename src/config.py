@@ -12,6 +12,8 @@ load_dotenv(BASE_DIR / "src" / "phase2_llm" / ".env")
 load_dotenv()  # cwd as fallback
 
 DATA_CACHE_DIR = BASE_DIR / "data" / "cache"
+HF_DATASETS_CACHE_DIR = BASE_DIR / "data" / "hf_cache"
+os.environ.setdefault("HF_DATASETS_CACHE", str(HF_DATASETS_CACHE_DIR))
 
 DATASET_NAME = os.getenv("DATASET_NAME", "ManikaSaini/zomato-restaurant-recommendation")
 

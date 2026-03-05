@@ -9,6 +9,53 @@ pip install -r requirements.txt
 cp .env.example .env   # Add your GROQ_API_KEY
 ```
 
+If Gradio fails to import (`HfFolder` error), pin HuggingFace Hub:
+
+```bash
+pip install 'huggingface_hub>=0.23,<1.0'
+```
+
+## Download the dataset (run once)
+
+Download and cache the Zomato dataset so the API and UI return results quickly:
+
+```bash
+python -m scripts.download_dataset
+```
+
+Then start the API and/or UI.
+
+## Run the app
+
+**API (port 8000):**
+
+```bash
+uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+- Docs: http://localhost:8000/docs  
+- Health: http://localhost:8000/api/health  
+
+**Gradio UI (port 7860):**
+
+```bash
+python3 -c "from src.phase4_ui.gradio_app import run_ui; run_ui(server_port=7860)"
+```
+
+- Open http://127.0.0.1:7860 (first load may take ~30s while the dataset loads)
+
+**React UI (port 5173 or 5174):**
+
+```bash
+# Terminal 1: start API first (required — frontend will show an error if API is not running)
+python3 -m uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+
+# Terminal 2: start frontend
+cd frontend && npm install && npm run dev
+```
+
+- Open the URL Vite prints (e.g. http://localhost:5173 or http://localhost:5174). The UI will show a clear message if the API is not reachable.
+
 ## Run tests
 
 ```bash

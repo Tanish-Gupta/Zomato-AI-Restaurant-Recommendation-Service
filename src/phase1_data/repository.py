@@ -130,11 +130,14 @@ class RestaurantRepository:
 
         if min_rating is not None and self._column_mapping.get("rating"):
             col = self._column_mapping["rating"]
-            df = df[pd.to_numeric(df[col], errors="coerce") >= min_rating]
+            rating_series = pd.to_numeric(df[col], errors="coerce")
+            # Include rows with missing/NaN rating so "min 0" doesn't drop unrated restaurants
+            df = df[(rating_series.isna()) | (rating_series >= min_rating)]
 
         if max_rating is not None and self._column_mapping.get("rating"):
             col = self._column_mapping["rating"]
-            df = df[pd.to_numeric(df[col], errors="coerce") <= max_rating]
+            rating_series = pd.to_numeric(df[col], errors="coerce")
+            df = df[(rating_series.isna()) | (rating_series <= max_rating)]
 
         if price_range and self._column_mapping.get("price"):
             col = self._column_mapping["price"]

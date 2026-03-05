@@ -21,6 +21,7 @@ build/
 .coverage
 htmlcov/
 data/cache/
+data/hf_cache/
 
 # IDE and OS
 .idea/

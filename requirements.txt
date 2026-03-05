@@ -11,6 +11,9 @@ pydantic>=2.5.0
 # LLM Integration (for later phases)
 groq>=0.4.0
 
+# Pin for Gradio compatibility (Gradio 4.x imports HfFolder, removed in hf_hub 1.0)
+huggingface_hub>=0.23,<1.0
+
 # UI (for later phases)
 gradio>=4.0.0
 
