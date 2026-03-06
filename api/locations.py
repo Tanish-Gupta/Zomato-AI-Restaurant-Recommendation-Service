@@ -1,4 +1,9 @@
 # Vercel serverless: GET /api/locations?cuisine=...
+import os
+if os.environ.get("VERCEL"):
+    os.environ.setdefault("HOME", "/tmp")
+    os.environ.setdefault("HF_HOME", "/tmp")
+    os.environ.setdefault("HF_DATASETS_CACHE", "/tmp/zomato-hf-cache")
 import json
 import sys
 from pathlib import Path
