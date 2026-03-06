@@ -38,15 +38,23 @@ function App() {
     additional_preferences: '',
   })
 
-  // Load cuisines once on mount
+  // Load cuisines once on mount; set connection error if API unreachable
   useEffect(() => {
     let cancelled = false
     fetch(`${API_BASE}/api/cuisines`)
       .then(r => r.ok ? r.json() : [])
       .then(c => {
-        if (!cancelled) setCuisines(['Any', ...(c || [])])
+        if (!cancelled) {
+          setCuisines(['Any', ...(c || [])])
+          setError(null)
+        }
       })
-      .catch(() => { if (!cancelled) setCuisines(['Any']) })
+      .catch(() => {
+        if (!cancelled) {
+          setCuisines(['Any'])
+          setError('Cannot reach the recommendation API.')
+        }
+      })
       .finally(() => { if (!cancelled) setLoadingMeta(false) })
     return () => { cancelled = true }
   }, [])
@@ -94,7 +102,11 @@ function App() {
       setRecommendations(recs)
       setSummary(data.summary || (recs.length === 0 ? 'No restaurants match your criteria. Try relaxing filters (e.g. cuisine or location).' : '') || '')
     } catch (err) {
-      setError(err.message || 'Could not fetch recommendations.')
+      const msg = err.message || 'Could not fetch recommendations.'
+      const isNetworkError = /failed to fetch|network error|load failed/i.test(msg)
+      setError(isNetworkError
+        ? 'Cannot reach the recommendation API. If this app is deployed (e.g. on Vercel), set VITE_API_URL to your API URL and ensure the API is running and allows this origin (CORS).'
+        : msg)
     } finally {
       setLoading(false)
     }
@@ -140,7 +152,12 @@ function App() {
       <main className="main">
         {error && (
           <div className="card error-card error-card--connection">
-            <p>{error}</p>
+            <p><strong>{error}</strong></p>
+            {error.includes('VITE_API_URL') && (
+              <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', opacity: 0.9 }}>
+                Run the API locally with: <code>python3 -m uvicorn src.main:app --host 0.0.0.0 --port 8000</code>
+              </p>
+            )}
           </div>
         )}
 
