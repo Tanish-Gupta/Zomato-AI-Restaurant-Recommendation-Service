@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import './App.css'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_URL ?? (typeof window !== 'undefined' && /^localhost$|^127\.0\.0\.1$/.test(window.location.hostname) ? 'http://localhost:8000' : '')
 
 const PRICE_ORDER = { low: 1, medium: 2, high: 3, very_high: 4 }
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50]

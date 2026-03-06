@@ -11,9 +11,18 @@ load_dotenv(BASE_DIR / ".env")
 load_dotenv(BASE_DIR / "src" / "phase2_llm" / ".env")
 load_dotenv()  # cwd as fallback
 
-DATA_CACHE_DIR = BASE_DIR / "data" / "cache"
+# On Vercel (serverless) use /tmp; otherwise use project data/cache
+if os.getenv("VERCEL"):
+    DATA_CACHE_DIR = Path("/tmp/zomato-cache")
+    DATA_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("HF_DATASETS_CACHE", "/tmp/zomato-hf-cache")
+else:
+    DATA_CACHE_DIR = BASE_DIR / "data" / "cache"
 HF_DATASETS_CACHE_DIR = BASE_DIR / "data" / "hf_cache"
-os.environ.setdefault("HF_DATASETS_CACHE", str(HF_DATASETS_CACHE_DIR))
+if not os.getenv("VERCEL"):
+    os.environ.setdefault("HF_DATASETS_CACHE", str(HF_DATASETS_CACHE_DIR))
+else:
+    HF_DATASETS_CACHE_DIR = Path(os.environ["HF_DATASETS_CACHE"])
 
 DATASET_NAME = os.getenv("DATASET_NAME", "ManikaSaini/zomato-restaurant-recommendation")
 

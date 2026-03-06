@@ -4,6 +4,11 @@
   "outputDirectory": "frontend/dist",
   "installCommand": "cd frontend && npm ci",
   "framework": null,
+  "functions": {
+    "api/recommend.py": { "maxDuration": 60 },
+    "api/cuisines.py": { "maxDuration": 60 },
+    "api/locations.py": { "maxDuration": 60 }
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]

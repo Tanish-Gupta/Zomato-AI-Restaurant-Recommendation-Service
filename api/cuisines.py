@@ -1,0 +1,31 @@
+# Vercel serverless: GET /api/cuisines
+import json
+import sys
+from pathlib import Path
+_root = Path(__file__).resolve().parent.parent
+if str(_root) not in sys.path:
+    sys.path.insert(0, str(_root))
+
+from http.server import BaseHTTPRequestHandler
+
+
+def get_cuisines_list():
+    from src.phase3_api.routes import get_recommendation_service
+    return get_recommendation_service()._repo.get_unique_cuisines()
+
+
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        try:
+            data = get_cuisines_list()
+            self.wfile.write(json.dumps(data).encode())
+        except Exception as e:
+            self.send_response(500)
+            self.wfile.write(json.dumps({"detail": str(e)}).encode())
+
+    def log_message(self, format, *args):
+        pass
