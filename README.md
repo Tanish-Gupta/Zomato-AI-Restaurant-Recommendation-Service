@@ -66,16 +66,19 @@ cd frontend && npm install && npm run dev
 
 ## Deploy on Vercel (frontend + backend)
 
-You can deploy both the **React frontend** and the **API** on the same Vercel project. The `api/` folder is deployed as serverless functions at `/api/cuisines`, `/api/locations`, `/api/recommend`, and `/api/health`.
+**Option A – Frontend only on Vercel (recommended for production)**  
+Vercel's serverless `/tmp` is too small (~512 MB) for the full Hugging Face dataset (~1 GB). For a working API with the full dataset and LLM:
 
-1. **Import the repo** in Vercel (New Project → Import Git Repository).
-2. **Build settings** are read from the root `vercel.json`: the app builds from the `frontend` folder and outputs `frontend/dist`. The `api/` Python functions are deployed automatically.
-3. **Environment variables** (Vercel → Project → Settings → Environment Variables):
-   - **`GROQ_API_KEY`** (required for AI summaries): your Groq API key so the recommend endpoint can use the LLM. If unset, recommendations still work but use a rating-only fallback.
-   - **`VITE_API_URL`** (optional): leave **unset** to use the same origin (frontend and API on the same Vercel URL). Set it only if you host the API elsewhere (e.g. `https://your-api.onrender.com`).
-4. **Cold starts:** The first request to `/api/cuisines` or `/api/recommend` may be slow (~30–60s) while the dataset loads from Hugging Face into `/tmp`. Later requests are faster. Consider increasing the function timeout in Vercel project settings (e.g. 60s on Pro) if needed.
+1. Deploy the **API** on [Railway](https://railway.app) or [Render](https://render.com) (run `uvicorn src.main:app --host 0.0.0.0 --port $PORT`).
+2. Deploy the **frontend** on Vercel and set **`VITE_API_URL`** to your API URL (e.g. `https://your-app.onrender.com`).
+3. On the API host, set **`CORS_EXTRA_ORIGINS`** to your Vercel app URL.
 
-If you prefer to host the API elsewhere (e.g. Railway or Render), set `VITE_API_URL` to that API URL and add your Vercel app URL to `CORS_EXTRA_ORIGINS` on the API host.
+**Option B – Frontend + API on the same Vercel project**  
+The `api/` folder is deployed as serverless functions. This works for a **demo**, but the first request will try to download the dataset and will fail with "Not enough disk space" because the dataset needs ~1 GB and Vercel's disk is limited. The app will show a message directing users to deploy the API on Railway or Render. To try it anyway:
+
+1. Import the repo in Vercel. Build and env are read from `vercel.json`.
+2. Set **`GROQ_API_KEY`** if you want LLM summaries.
+3. Leave **`VITE_API_URL`** unset to use the same origin.
 
 ## Run tests
 

@@ -41,10 +41,20 @@ class handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps(data).encode())
         except Exception as e:
-            self.send_response(500)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"detail": str(e)}).encode())
+            msg = str(e)
+            if "disk space" in msg.lower() or "not enough" in msg.lower() or "errno 28" in msg.lower():
+                self.send_response(503)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "detail": "Dataset is too large for Vercel's serverless disk. Deploy the API to Railway or Render for full functionality (see README)."
+                }).encode())
+            else:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"detail": msg}).encode())
 
     def do_OPTIONS(self):
         self.send_response(204)
