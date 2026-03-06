@@ -27,9 +27,10 @@ def get_cuisines() -> List[str]:
         return ["Any"]
 
 
-def get_locations() -> List[str]:
+def get_locations(cuisine: Optional[str] = None) -> List[str]:
+    """Get locations, optionally filtered by cuisine (e.g. for Streamlit dropdown)."""
     try:
-        return ["Any"] + get_service()._repo.get_unique_locations()
+        return ["Any"] + get_service()._repo.get_unique_locations(cuisine=cuisine)
     except Exception as e:
         logger.exception("get_locations failed")
         return ["Any"]

@@ -36,6 +36,14 @@ uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 - Docs: http://localhost:8000/docs  
 - Health: http://localhost:8000/api/health  
 
+**Streamlit UI (port 8501):**
+
+```bash
+python -m scripts.run_streamlit
+```
+
+- Open http://localhost:8501 (first load may take ~30s while the dataset loads)
+
 **Gradio UI (port 7860):**
 
 ```bash
@@ -71,7 +79,7 @@ pytest tests/phase2/ -v
 - `src/phase1_data/` — Data loading, preprocessing, repository
 - `src/phase2_llm/` — Groq LLM service, prompts, response parsing
 - `src/phase3_api/` — API (placeholder)
-- `src/phase4_ui/` — UI (placeholder)
+- `src/phase4_ui/` — Streamlit & Gradio UIs
 - `src/phase5_optimization/` — Optimizations (placeholder)
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for full design.
