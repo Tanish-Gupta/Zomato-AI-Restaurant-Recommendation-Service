@@ -1,7 +1,7 @@
 """FastAPI application entry point."""
 
 import logging
-
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -33,13 +33,16 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
-# Allow common dev origins (Vite often uses 5173, 5174, etc.)
+# Allow common dev origins (Vite) and Vercel preview/production (set CORS_EXTRA_ORIGINS when deploying API)
 _CORS_ORIGINS = [
     "http://localhost:5173", "http://127.0.0.1:5173",
     "http://localhost:5174", "http://127.0.0.1:5174",
     "http://localhost:5175", "http://127.0.0.1:5175",
     "http://localhost:3000", "http://127.0.0.1:3000",
 ]
+_extra = os.getenv("CORS_EXTRA_ORIGINS", "")
+if _extra:
+    _CORS_ORIGINS = list(_CORS_ORIGINS) + [s.strip() for s in _extra.split(",") if s.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_CORS_ORIGINS,

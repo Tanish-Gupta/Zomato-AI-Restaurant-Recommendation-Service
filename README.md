@@ -64,6 +64,20 @@ cd frontend && npm install && npm run dev
 
 - Open the URL Vite prints (e.g. http://localhost:5173 or http://localhost:5174). The UI will show a clear message if the API is not reachable.
 
+## Deploy on Vercel (React UI)
+
+The React frontend can be deployed on [Vercel](https://vercel.com):
+
+1. **Import the repo** in Vercel (New Project → Import Git Repository).
+2. **Build settings** are read from the root `vercel.json`: the app builds from the `frontend` folder and outputs `frontend/dist`. No need to set Root Directory if you use this config.
+3. **Environment variable (required for live API):** In Vercel → Project → Settings → Environment Variables, add:
+   - **Name:** `VITE_API_URL`  
+   - **Value:** your deployed API URL (e.g. `https://your-api.onrender.com` or `https://your-api.railway.app`).  
+   The frontend calls this URL for cuisines, locations, and recommendations. If you leave it unset, the app will try `http://localhost:8000` and will only work if users have the API running locally.
+4. **Deploy the API separately** (the FastAPI backend is not run on Vercel). Deploy it on [Railway](https://railway.app), [Render](https://render.com), or another host, then set `VITE_API_URL` in Vercel to that API URL. On the API host, set the env var `CORS_EXTRA_ORIGINS` to your Vercel app URL (e.g. `https://your-app.vercel.app`) so the browser can call the API.
+
+After deployment, the Vercel URL will serve the same React UI (nav, hero, cards, sort, pagination) as when you run locally.
+
 ## Run tests
 
 ```bash
