@@ -6,6 +6,23 @@ Or:
     python -m scripts.run_streamlit
 """
 
+# Ensure repo root is on path (required for Streamlit Cloud and direct script run)
+import sys
+from pathlib import Path
+
+def _find_repo_root() -> Path:
+    """Walk up from this file until we find the repo root (directory containing 'src')."""
+    d = Path(__file__).resolve().parent
+    for _ in range(5):
+        if (d / "src" / "phase4_ui" / "recommend_logic.py").exists():
+            return d
+        d = d.parent
+    return Path(__file__).resolve().parent.parent.parent  # fallback
+
+_REPO_ROOT = _find_repo_root()
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
 import streamlit as st
 
 from src.phase4_ui.recommend_logic import get_cuisines, get_locations, recommend
