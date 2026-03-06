@@ -1,7 +1,7 @@
-# Core dependencies
+# Core dependencies (pandas 2.1.x avoids config_init issues in Vercel serverless)
 datasets>=2.16.0
-pandas>=2.0.0
-numpy>=1.24.0
+pandas>=2.1.0,<2.2.0
+numpy>=1.24.0,<2.2.0
 
 # API Framework (for later phases)
 fastapi>=0.109.0
